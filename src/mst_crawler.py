@@ -6,9 +6,9 @@ import requests
 from lxml import html
 from loguru import logger
 
-from src.libs.user_agent import USER_AGENT
-from src import database
-from src import pattern
+from libs.user_agent import USER_AGENT
+import database
+import pattern
 
 useragent = USER_AGENT[randrange(len(USER_AGENT)-1)]
 # useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -85,7 +85,7 @@ def crawl_data_district(headers=const_headers, proxies=False):
 def crawl_data_district_by_province(province_data, cur, conn, headers=const_headers, proxies=False):
     # province_data = (1, 'Hà Nội', '/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7') | id - name - slug
     logger.info(f'Get Province in {province_data[1]} by link {province_data[2]}')
-    tree = get_request(province_data[2], const_headers, headers, proxies)
+    tree = get_request(province_data[2], const_headers, proxies)
     if not tree:
         logger.error('Failed to get data districts')
         return
@@ -335,7 +335,7 @@ def crawl_data_company_by_url(url='', province_id=None, district_id=None, career
 
 
 # Lấy thông tin về tỉnh/thành phố
-# crawl_data_province(pattern.URL_PATH_BY_PROVINCE, const_headers) # =============================================== Job
+crawl_data_province(pattern.URL_PATH_BY_PROVINCE, const_headers) # =============================================== Job
 # Lấy thông tin quận huyện theo URL
 # crawl_data_district() # ========================================================================================== Job
 # crawl_data_district_by_url('/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7', const_headers) # Test
