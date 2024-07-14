@@ -16,6 +16,10 @@ useragent = USER_AGENT[randrange(len(USER_AGENT)-1)]
 const_headers = {'User-Agent': useragent}
 const_proxies = False
 
+ignore_text = [
+    'Bị ẩn theo yêu cầu người dùng'
+]
+
 
 def get_request(path_url, headers={}, proxies=False):
     url = f'{pattern.BASE_URL}{path_url}'
@@ -308,6 +312,31 @@ def crawl_data_company_by_url(url='', province_id=None, district_id=None, career
     conpany_status = len(conpany_status_el) and conpany_status_el[0].text_content().strip() or None
     conpany_last_update = len(conpany_last_update_el) and conpany_last_update_el[0].text_content().strip() or None
 
+    if company_name in ignore_text:
+        company_name = None
+    if company_name_globe in ignore_text:
+        company_name_globe = None
+    if company_name_short in ignore_text:
+        company_name_short = None
+    if conpany_tax in ignore_text:
+        company_name = None
+    if conpany_address in ignore_text:
+        conpany_address = None
+    if conpany_user in ignore_text:
+        conpany_user = None
+    if conpany_phone in ignore_text:
+        conpany_phone = None
+    if conpany_active_date in ignore_text:
+        conpany_active_date = None
+    if conpany_manage in ignore_text:
+        conpany_manage = None
+    if conpany_category in ignore_text:
+        conpany_category = None
+    if conpany_status in ignore_text:
+        conpany_status = None
+    if conpany_last_update in ignore_text:
+        conpany_last_update = None
+
     # print('Ngành nghề kinh doanh')
     company_career_code = []
     company_career_name = []
@@ -335,7 +364,7 @@ def crawl_data_company_by_url(url='', province_id=None, district_id=None, career
 
 
 # Lấy thông tin về tỉnh/thành phố
-crawl_data_province(pattern.URL_PATH_BY_PROVINCE, const_headers) # =============================================== Job
+# crawl_data_province(pattern.URL_PATH_BY_PROVINCE, const_headers) # =============================================== Job
 # Lấy thông tin quận huyện theo URL
 # crawl_data_district() # ========================================================================================== Job
 # crawl_data_district_by_url('/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7', const_headers) # Test
