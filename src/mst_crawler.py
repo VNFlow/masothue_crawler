@@ -7,26 +7,34 @@ from lxml import html
 from loguru import logger
 
 from libs.user_agent import USER_AGENT
+from libs.proxy import PROXY
 import database
 import pattern
 
-useragent = USER_AGENT[randrange(len(USER_AGENT)-1)]
 # useragent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 # useragent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
-const_headers = {'User-Agent': useragent}
-const_proxies = False
 
 ignore_text = [
     'Bị ẩn theo yêu cầu người dùng'
 ]
 
+def get_proxy(proxy=False):
+    if not proxy:
+        proxy = PROXY[randrange(len(PROXY)-1)]
+    proxy_data =  proxy.split(":")
+    return f"{proxy_data[2]}:{proxy_data[3]}@{proxy_data[0]}:{proxy_data[1]}"
 
-def get_request(path_url, headers={}, proxies=False):
+def get_request(path_url, headers={}, proxy=False):
     url = f'{pattern.BASE_URL}{path_url}'
-    header = {}
+    header = {
+        'User-Agent': USER_AGENT[randrange(len(USER_AGENT)-1)]
+    }
     header.update(headers)
-    logger.info(f'Send GET request:\n- URL: {url}\n- Header: {header}\n- Proxy: {proxies}')
-    response = requests.get(url, headers=headers, proxies=proxies)
+    proxy = {
+        'http': get_proxy(proxy)
+    }
+    logger.info(f'Send GET request:\n- URL: {url}\n- Header: {header}\n- Proxy: {proxy}')
+    response = requests.get(url, headers=header, proxies=proxy)
     # response = requests.get(url, headers=headers)
     if response.status_code == 200:
         tree = html.fromstring(response.content)
@@ -41,15 +49,15 @@ def is_more_data(handler_page, active_page, els):
     return handler_page == active_page and els
 
 
-def crawl_data_province(url, headers=const_headers, proxies=False):
+def crawl_data_province(url, headers={}, proxies=False):
     tree = get_request(url, headers, proxies)
     if not tree:
         logger.error('Failed to get data provinces')
         return
 
 
-    conn = database.get_db_connection()
-    cur = conn.cursor()
+    # conn = database.get_db_connection()
+    # cur = conn.cursor()
 
     # Sử dụng XPath để tìm phần tử
     province_els = tree.xpath('//table//tr')
@@ -63,19 +71,19 @@ def crawl_data_province(url, headers=const_headers, proxies=False):
             "slug": province_link
         })
         logger.info(f'- {province_name} | {province_link}')
-        sql = """
-            INSERT INTO mst_province (name, slug)
-            VALUES (%s, %s)
-        """
-        cur.execute(sql, (province_name, province_link))
+        # sql = """
+        #     INSERT INTO mst_province (name, slug)
+        #     VALUES (%s, %s)
+        # """
+        # cur.execute(sql, (province_name, province_link))
 
-    database.end_db_connection(cur, conn)
+    # database.end_db_connection(cur, conn)
 
     logger.info(f'Get provinces data successfully. Total: {len(province_els)}')
     return
 
 
-def crawl_data_district(headers=const_headers, proxies=False):
+def crawl_data_district(headers={}, proxies=False):
     conn = database.get_db_connection()
     cur = conn.cursor()
     sql = """SELECT id, name, slug FROM mst_province;"""
@@ -86,10 +94,10 @@ def crawl_data_district(headers=const_headers, proxies=False):
     database.end_db_connection(cur, conn)
 
 
-def crawl_data_district_by_province(province_data, cur, conn, headers=const_headers, proxies=False):
+def crawl_data_district_by_province(province_data, cur, conn, headers={}, proxies=False):
     # province_data = (1, 'Hà Nội', '/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7') | id - name - slug
     logger.info(f'Get Province in {province_data[1]} by link {province_data[2]}')
-    tree = get_request(province_data[2], const_headers, proxies)
+    tree = get_request(province_data[2], headers, proxies)
     if not tree:
         logger.error('Failed to get data districts')
         return
@@ -110,7 +118,7 @@ def crawl_data_district_by_province(province_data, cur, conn, headers=const_head
     return
 
 
-def crawl_data_district_by_url(url, headers=const_headers, proxies=False):
+def crawl_data_district_by_url(url, headers={}, proxies=False):
     tree = get_request(url, headers, proxies)
     if not tree:
         logger.error('Failed to get data districts')
@@ -128,7 +136,7 @@ def crawl_data_district_by_url(url, headers=const_headers, proxies=False):
     return
 
 
-def crawl_data_career(url, headers=const_headers, proxies=False):
+def crawl_data_career(url, headers={}, proxies=False):
     conn = database.get_db_connection()
     cur = conn.cursor()
 
@@ -188,7 +196,7 @@ def crawl_data_career(url, headers=const_headers, proxies=False):
     database.end_db_connection(cur, conn)
     return
 
-def crawl_data_company(crawl_by='district', headers=const_headers, proxies=False):
+def crawl_data_company(crawl_by='district', headers={}, proxies=False):
     logger.info(f'Get companies data by {crawl_by}')
     conn = database.get_db_connection()
     cur = conn.cursor()
@@ -206,7 +214,7 @@ def crawl_data_company(crawl_by='district', headers=const_headers, proxies=False
     logger.info(f'Get companies data by {crawl_by} successfully!')
 
 
-def crawl_data_company_by_data(crawl_by, data, cur, conn, headers=const_headers, proxies=False):
+def crawl_data_company_by_data(crawl_by, data, cur, conn, headers={}, proxies=False):
     logger.info(f'crawl_data_company_by_data {crawl_by}.')
     # district_data = (1, 'Hà Nội', '/tra-cuu-ma-so-thue-theo-tinh/ha-noi-11483', 1, 'Hà Nội') | id, name, slug, province_id, province_name
     province_id = None
@@ -364,7 +372,7 @@ def crawl_data_company_by_url(url='', province_id=None, district_id=None, career
 
 
 # Lấy thông tin về tỉnh/thành phố
-# crawl_data_province(pattern.URL_PATH_BY_PROVINCE, const_headers) # =============================================== Job
+# crawl_data_province(pattern.URL_PATH_BY_PROVINCE, {}, False) # =============================================== Job
 # Lấy thông tin quận huyện theo URL
 # crawl_data_district() # ========================================================================================== Job
 # crawl_data_district_by_url('/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7', const_headers) # Test
