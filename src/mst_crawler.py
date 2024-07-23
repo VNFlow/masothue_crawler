@@ -18,11 +18,20 @@ ignore_text = [
     'Bị ẩn theo yêu cầu người dùng'
 ]
 
+def get_ip(header, proxy):
+    if not proxy:
+        return '127.0.0.1'
+    try:
+        response = requests.get("https://api.myip.com/", headers=header, proxies=proxy)
+        return response.content
+    except requests.exceptions.RequestException as err:
+        return err.response.json()
+
 def get_proxy(proxy=False):
     if not proxy:
         proxy = PROXY[randrange(len(PROXY)-1)]
-    proxy_data =  proxy.split(":")
-    return f"{proxy_data[2]}:{proxy_data[3]}@{proxy_data[0]}:{proxy_data[1]}"
+    proxy_data = proxy.split(":")
+    return f"http://{proxy_data[2]}:{proxy_data[3]}@{proxy_data[0]}:{proxy_data[1]}"
 
 def get_request(path_url, headers={}, proxy=False):
     url = f'{pattern.BASE_URL}{path_url}'
@@ -30,10 +39,14 @@ def get_request(path_url, headers={}, proxy=False):
         'User-Agent': USER_AGENT[randrange(len(USER_AGENT)-1)]
     }
     header.update(headers)
+
+    proxy = get_proxy(proxy)
     proxy = {
-        'http': get_proxy(proxy)
+        'http': proxy,
+        'https': proxy,
     }
-    logger.info(f'Send GET request:\n- URL: {url}\n- Header: {header}\n- Proxy: {proxy}')
+    ip = get_ip(header, proxy)
+    logger.info(f'Send GET request:\n- URL: {url}\n- Header: {header}\n- Proxy: {proxy}\n- IP info: {ip}')
     response = requests.get(url, headers=header, proxies=proxy)
     # response = requests.get(url, headers=headers)
     if response.status_code == 200:
@@ -372,18 +385,18 @@ def crawl_data_company_by_url(url='', province_id=None, district_id=None, career
 
 
 # Lấy thông tin về tỉnh/thành phố
-# crawl_data_province(pattern.URL_PATH_BY_PROVINCE, {}, False) # =============================================== Job
+crawl_data_province(pattern.URL_PATH_BY_PROVINCE, {}, False) # =============================================== Job
 # Lấy thông tin quận huyện theo URL
-# crawl_data_district() # ========================================================================================== Job
+crawl_data_district() # ========================================================================================== Job
 # crawl_data_district_by_url('/tra-cuu-ma-so-thue-theo-tinh/ha-noi-7', const_headers) # Test
 
 
 # Lấy thông tin ngành nghề
-# crawl_data_career(pattern.URL_PATH_BY_CAREER, const_headers) # =================================================== Job
+crawl_data_career(pattern.URL_PATH_BY_CAREER, {}, False) # =================================================== Job
 
 
 # Lấy thông tin công ty
-# crawl_data_company() # =========================================================================================== Job
+crawl_data_company() # =========================================================================================== Job
 # crawl_data_company_by_url('/2100689933-cong-ty-tnhh-mtv-vang-bac-kim-hue', const_headers)
 # crawl_data_company_by_url('/2100689059-cong-ty-tnhh-xang-dau-tra-vinh-petro', const_headers)
 # crawl_data_company_by_url('/0315739605-001-van-phong-dai-dien-cong-ty-tnhh-chint-vietnam-holding-tai-ha-noi', const_headers)
